@@ -1,6 +1,6 @@
 /* REPORTE DEMOSTRACION DE RESULTADOS
 exec pr_rptBalanceGeneral_USD @ANIO=2022,@MONEDA=N'USD',@EMPRESA=N'BALBS',@MESPERIODO=12
---4:37-252 ** 
+--4:37-252 ** RN
 --se ejecuta en la BD principal, debe tener todas las cuentas contables.
 exec pr_rptCuentasEmpresa_USD @ANIO=2021,@EMPRESA='BALBS',@IDREPORTE='RPTBGRAL';
 */
