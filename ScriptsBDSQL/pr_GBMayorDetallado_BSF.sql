@@ -1,0 +1,165 @@
+/*
+exec pr_GBMayorDetallado_BSF @INIPERIODO='20210401',@FINPERIODO='20210531',@EMPRESA=N'PRPER',@CUENTAD='1',@CUENTAH='3'
+TEMPSALDOSF order by actnumst,TRXDATE, curncyid
+*/
+
+if exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[pr_GBMayorDetallado_BSF]') and OBJECTPROPERTY(id, N'IsProcedure') = 1)
+drop procedure [dbo].pr_GBMayorDetallado_BSF
+ go
+CREATE  PROCEDURE pr_GBMayorDetallado_BSF 
+(@INIPERIODO	Date
+,@FINPERIODO	Date
+,@EMPRESA       VARCHAR(100)
+,@CUENTAD		VARCHAR(30)='1'
+,@CUENTAH		VARCHAR(30)='ZZZ'
+,@CONTABILIZADO INT=1 --1 SI, 2 NO		
+)
+AS
+BEGIN
+
+	DECLARE @SQLSTR    NVARCHAR(MAX)='',@Parametro nvarchar(500)
+	DECLARE @FILTRO NVARCHAR(MAX)=' AND D.ACTNUMST BETWEEN ('''+@CUENTAD+''') AND  ('''+@CUENTAH+''') '
+	DECLARE @XEMP VARCHAR(15)
+	DECLARE @CTACIERRE CHAR(6)=(select RERINDX from GL40000) --BUSCA CUENTA DE CIERRE
+
+	if exists(select 1 from sys.tables where name='TEMPSALDOSMD')
+	drop table TEMPSALDOSMD;
+					CREATE TABLE [dbo].[TEMPSALDOSMD](
+						[ANIO] [smallint] NOT NULL,
+						[PERIODID] [smallint] NOT NULL,
+						[JRNENTRY] [int] NOT NULL,
+						[TRXDATE] [datetime] NOT NULL,
+						[SOURCDOC] [char](11) NOT NULL,
+						[SDOCDSCR] [char](31) NOT NULL,
+						[ACTNUMST] [varchar](129) NULL,
+						[ACTDESCR] [varchar](51) NULL,
+						[DSCRIPTN] [char](31) NOT NULL,
+						[REFRENCE] [char](31) NOT NULL,
+						[ORDOCNUM] [char](21) NOT NULL,
+						[DEBITAMT] [numeric](19, 5) NOT NULL,
+						[CRDTAMNT] [numeric](19, 5) NOT NULL,
+						[ORDBTAMT] [numeric](19, 5) NOT NULL,
+						[ORCRDAMT] [numeric](19, 5) NOT NULL,
+						[CURNCYID] [char](15) NOT NULL,
+						[PSTNGTYP] [smallint] NOT NULL,
+						[SUCURSAL] [CHAR](15) NOT NULL,
+						[ORPSTDDT] [datetime] NOT NULL
+						
+					) ON [PRIMARY]
+					CREATE INDEX idx_ACTNUMST ON TEMPSALDOSMD (ACTNUMST)
+					CREATE INDEX idx_TRXDATE  ON TEMPSALDOSMD (TRXDATE)
+
+	print  @FILTRO
+	--cursor para poder consolidar las empresas
+	DECLARE EMPRESAS CURSOR FOR   
+	SELECT Value FROM dbo.Split(@EMPRESA,',') WHERE VALUE<>''
+	--SELECT DB_NAME()
+    --BUSCAR E INSERTAR DE CADA EMPRESA
+	OPEN EMPRESAS  
+	FETCH NEXT FROM EMPRESAS INTO @XEMP   
+	WHILE @@FETCH_STATUS = 0  
+		BEGIN
+ 			SET @SQLSTR='INSERT INTO TEMPSALDOSMD SELECT HSTYEAR ANIO,PERIODID
+										  ,S.JRNENTRY
+										  ,S.TRXDATE
+										  ,S.SOURCDOC
+										  ,T.SDOCDSCR
+										  ,(RTRIM(D.ACTNUMST)) ACTNUMST
+										  ,(RTRIM(C.ACTDESCR)) ACTDESCR
+										  ,S.DSCRIPTN
+										  ,S.REFRENCE
+										  ,S.ORDOCNUM
+										  ,S.DEBITAMT
+										  ,S.CRDTAMNT
+										  ,S.ORDBTAMT
+										  ,S.ORCRDAMT
+										  ,S.CURNCYID
+										  ,C.PSTNGTYP
+										  ,''' + @XEMP +'''
+										  ,ISNULL(RM.DOCDATE,ISNULL(PM.DOCDATE,S.ORPSTDDT)) ORPSTDDT
+									  FROM ' + @XEMP +'.dbo.GL30000 S 
+									  INNER JOIN ' + @XEMP +'.dbo.SY00900 T ON S.SOURCDOC=T.SOURCDOC
+									  INNER JOIN ' + @XEMP +'.dbo.GL00100 C ON C.ACTINDX=S.ACTINDX
+									  INNER JOIN ' + @XEMP +'.dbo.GL00105 D ON C.ACTINDX=D.ACTINDX
+									 				
+									   LEFT JOIN ' + @XEMP +'.dbo.RM20101 RM ON RM.DOCNUMBR=S.ORCTRNUM AND RM.RMDTYPAL=S.ORTRXTYP AND S.SERIES=3
+									   LEFT JOIN ' + @XEMP +'.dbo.PM00400 PM ON PM.CNTRLNUM=S.ORCTRNUM AND PM.DOCTYPE =S.ORTRXTYP AND S.SERIES=4
+
+									 WHERE TRXDATE<@FINPERIODO and (PERIODID<>0 or S.ACTINDX='+@CTACIERRE+')' 
+										     + @FILTRO +
+									 ' AND JRNENTRY NOT IN (SELECT TOP 1 JRNENTRY FROM ' + @XEMP +'.dbo.GL30000 WHERE PERIODID=0 ORDER BY TRXDATE);' +
+							     'INSERT INTO TEMPSALDOSMD SELECT OPENYEAR ANIO,PERIODID
+										  ,S.JRNENTRY
+										  ,S.TRXDATE
+										  ,S.SOURCDOC
+										  ,T.SDOCDSCR
+										  ,(RTRIM(D.ACTNUMST)) ACTNUMST
+										  ,(RTRIM(C.ACTDESCR)) ACTDESCR
+										  ,S.DSCRIPTN
+										  ,S.REFRENCE
+										  ,S.ORDOCNUM
+										  ,S.DEBITAMT
+										  ,S.CRDTAMNT
+										  ,S.ORDBTAMT
+										  ,S.ORCRDAMT
+										  ,S.CURNCYID
+										  ,C.PSTNGTYP
+										  ,''' + @XEMP +'''
+										  ,ISNULL(RM.DOCDATE,ISNULL(PM.DOCDATE,S.ORPSTDDT)) ORPSTDDT
+									  FROM ' + @XEMP +'.dbo.GL20000 S
+									  INNER JOIN ' + @XEMP +'.dbo.SY00900 T ON S.SOURCDOC=T.SOURCDOC 
+									  INNER JOIN ' + @XEMP +'.dbo.GL00100 C ON C.ACTINDX=S.ACTINDX
+									  INNER JOIN ' + @XEMP +'.dbo.GL00105 D ON C.ACTINDX=D.ACTINDX
+									 				 
+									   LEFT JOIN ' + @XEMP +'.dbo.RM20101 RM ON RM.DOCNUMBR=S.ORCTRNUM AND RM.RMDTYPAL=S.ORTRXTYP AND S.SERIES=3
+									   LEFT JOIN ' + @XEMP +'.dbo.PM00400 PM ON PM.CNTRLNUM=S.ORCTRNUM AND PM.DOCTYPE =S.ORTRXTYP AND S.SERIES=4
+
+										WHERE TRXDATE<=@FINPERIODO and (PERIODID<>0 or S.ACTINDX='+@CTACIERRE+')'
+										+ @FILTRO +
+										' AND OPENYEAR<='+ CONVERT(CHAR(6),YEAR(@FINPERIODO)) +';'
+									
+			if (@CONTABILIZADO=2)--INCLUIR NO CONTABILIZADO
+			BEGIN
+			SET @SQLSTR=@SQLSTR+'INSERT INTO TEMPSALDOSMD SELECT OPENYEAR ANIO,PERIODID
+										  ,S.JRNENTRY
+										  ,S.TRXDATE
+										  ,S.SOURCDOC
+										  ,T.SDOCDSCR
+										  ,(RTRIM(D.ACTNUMST)) ACTNUMST
+										  ,(RTRIM(C.ACTDESCR)) ACTDESCR
+										  ,SD.DSCRIPTN
+										  ,S.REFRENCE
+										  ,SD.ORDOCNUM
+										  ,SD.DEBITAMT
+										  ,SD.CRDTAMNT
+										  ,SD.ORDBTAMT
+										  ,SD.ORCRDAMT
+										  ,S.CURNCYID
+										  ,C.PSTNGTYP
+										  ,''' + @XEMP +'''
+										  ,ISNULL(RM.DOCDATE,ISNULL(PM.DOCDATE,S.ORPSTDDT)) ORPSTDDT
+									  FROM ' + @XEMP +'.dbo.GL10000 S
+									  INNER JOIN ' + @XEMP +'.dbo.GL10001 SD ON S.JRNENTRY=SD.JRNENTRY
+									  INNER JOIN ' + @XEMP +'.dbo.SY00900 T ON S.SOURCDOC=T.SOURCDOC 
+									  INNER JOIN ' + @XEMP +'.dbo.GL00100 C ON C.ACTINDX=SD.ACTINDX
+									  INNER JOIN ' + @XEMP +'.dbo.GL00105 D ON C.ACTINDX=D.ACTINDX
+									 				 
+									   LEFT JOIN ' + @XEMP +'.dbo.RM20101 RM ON RM.DOCNUMBR=SD.ORCTRNUM AND RM.RMDTYPAL=SD.ORTRXTYP AND S.SERIES=3
+									   LEFT JOIN ' + @XEMP +'.dbo.PM00400 PM ON PM.CNTRLNUM=SD.ORCTRNUM AND PM.DOCTYPE =SD.ORTRXTYP AND S.SERIES=4
+
+										WHERE TRXDATE<=@FINPERIODO and (PERIODID<>0 or SD.ACTINDX='+@CTACIERRE+')'+
+										+ @FILTRO +';'
+			END
+
+			SET @Parametro = N'@FINPERIODO DATE';  
+		 PRINT @SQLSTR 
+		EXECUTE sp_executesql @SQLSTR, @Parametro,  
+							  @FINPERIODO = @FINPERIODO; 
+--FIN LLENADO DE DATOS
+
+	FETCH NEXT FROM EMPRESAS INTO @XEMP  
+	END   
+	CLOSE EMPRESAS;  
+	DEALLOCATE EMPRESAS;
+
+END
