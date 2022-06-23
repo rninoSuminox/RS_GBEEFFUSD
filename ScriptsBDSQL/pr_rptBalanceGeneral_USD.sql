@@ -356,19 +356,19 @@ SELECT  '3' IDXNVL1,'PATRIMONIO' NIVELGRUPO,0 VISNVL1
 		,@MONEDA CURNCYID
 		,'' TXTMONEDA
 	  --PQC Roberto 16-06-2022		
-	  ,SUM(CASE WHEN idxnvl1=2 then abs(SALDO)*-1 WHEN idxnvl1=3 then abs(SALDO) ELSE SALDO END ) SALDO
-	  ,SUM(CASE WHEN idxnvl1=2 then abs(ENE  )*-1 WHEN idxnvl1=3 then abs(ENE  ) ELSE ENE   END ) ENE  
-	  ,SUM(CASE WHEN idxnvl1=2 then abs(FEB  )*-1 WHEN idxnvl1=3 then abs(FEB  ) ELSE FEB   END ) FEB  
-	  ,SUM(CASE WHEN idxnvl1=2 then abs(MAR  )*-1 WHEN idxnvl1=3 then abs(MAR  ) ELSE MAR   END ) MAR  
-	  ,SUM(CASE WHEN idxnvl1=2 then abs(ABR  )*-1 WHEN idxnvl1=3 then abs(ABR  ) ELSE ABR   END ) ABR  
-	  ,SUM(CASE WHEN idxnvl1=2 then abs(MAY  )*-1 WHEN idxnvl1=3 then abs(MAY  ) ELSE MAY   END ) MAY  
-	  ,SUM(CASE WHEN idxnvl1=2 then abs(JUN  )*-1 WHEN idxnvl1=3 then abs(JUN  ) ELSE JUN   END ) JUN  
-	  ,SUM(CASE WHEN idxnvl1=2 then abs(JUL  )*-1 WHEN idxnvl1=3 then abs(JUL  ) ELSE JUL   END ) JUL  
-	  ,SUM(CASE WHEN idxnvl1=2 then abs(AGO  )*-1 WHEN idxnvl1=3 then abs(AGO  ) ELSE AGO   END ) AGO  
-	  ,SUM(CASE WHEN idxnvl1=2 then abs(SEP  )*-1 WHEN idxnvl1=3 then abs(SEP  ) ELSE SEP   END ) SEP  
-	  ,SUM(CASE WHEN idxnvl1=2 then abs(OCT  )*-1 WHEN idxnvl1=3 then abs(OCT  ) ELSE OCT   END ) OCT  
-	  ,SUM(CASE WHEN idxnvl1=2 then abs(NOV  )*-1 WHEN idxnvl1=3 then abs(NOV  ) ELSE NOV   END ) NOV  
-	  ,SUM(CASE WHEN idxnvl1=2 then abs(DIC  )*-1 WHEN idxnvl1=3 then abs(DIC  ) ELSE DIC   END ) DIC
+	  ,SUM(CASE WHEN idxnvl1 in (2,3) then (SALDO)*-1 ELSE SALDO END ) SALDO
+	  ,SUM(CASE WHEN idxnvl1 in (2,3) then (ENE  )*-1 ELSE ENE   END ) ENE  
+	  ,SUM(CASE WHEN idxnvl1 in (2,3) then (FEB  )*-1 ELSE FEB   END ) FEB  
+	  ,SUM(CASE WHEN idxnvl1 in (2,3) then (MAR  )*-1 ELSE MAR   END ) MAR  
+	  ,SUM(CASE WHEN idxnvl1 in (2,3) then (ABR  )*-1 ELSE ABR   END ) ABR  
+	  ,SUM(CASE WHEN idxnvl1 in (2,3) then (MAY  )*-1 ELSE MAY   END ) MAY  
+	  ,SUM(CASE WHEN idxnvl1 in (2,3) then (JUN  )*-1 ELSE JUN   END ) JUN  
+	  ,SUM(CASE WHEN idxnvl1 in (2,3) then (JUL  )*-1 ELSE JUL   END ) JUL  
+	  ,SUM(CASE WHEN idxnvl1 in (2,3) then (AGO  )*-1 ELSE AGO   END ) AGO  
+	  ,SUM(CASE WHEN idxnvl1 in (2,3) then (SEP  )*-1 ELSE SEP   END ) SEP  
+	  ,SUM(CASE WHEN idxnvl1 in (2,3) then (OCT  )*-1 ELSE OCT   END ) OCT  
+	  ,SUM(CASE WHEN idxnvl1 in (2,3) then (NOV  )*-1 ELSE NOV   END ) NOV  
+	  ,SUM(CASE WHEN idxnvl1 in (2,3) then (DIC  )*-1 ELSE DIC   END ) DIC
 		,MAX(ANIOTRX) ANIOTRX
 		,MAX(PER01	) PER01
 		,MAX(PER02	) PER02
@@ -505,7 +505,21 @@ c6:
 				OVER(PARTITION BY ACTNUMST,CURNCYID ORDER BY ANIO,MES,CURNCYID) SALDOBU
 	,SUM(sum(iif(MONEDAORG='USD' AND SUBSTRING(ACTNUMST,8,1) NOT IN ('6','7','8'),ORDBTAMT-ORCRDAMT,0))) 
 				OVER(PARTITION BY ACTNUMST,CURNCYID ORDER BY ANIO,MES,CURNCYID) SALDOUSD
-
+c7:
+	  --PQC Roberto 16-06-2022		
+	  ,SUM(CASE WHEN idxnvl1=2 then abs(SALDO)*-1 WHEN idxnvl1=3 then abs(SALDO) ELSE SALDO END ) SALDO
+	  ,SUM(CASE WHEN idxnvl1=2 then abs(ENE  )*-1 WHEN idxnvl1=3 then abs(ENE  ) ELSE ENE   END ) ENE  
+	  ,SUM(CASE WHEN idxnvl1=2 then abs(FEB  )*-1 WHEN idxnvl1=3 then abs(FEB  ) ELSE FEB   END ) FEB  
+	  ,SUM(CASE WHEN idxnvl1=2 then abs(MAR  )*-1 WHEN idxnvl1=3 then abs(MAR  ) ELSE MAR   END ) MAR  
+	  ,SUM(CASE WHEN idxnvl1=2 then abs(ABR  )*-1 WHEN idxnvl1=3 then abs(ABR  ) ELSE ABR   END ) ABR  
+	  ,SUM(CASE WHEN idxnvl1=2 then abs(MAY  )*-1 WHEN idxnvl1=3 then abs(MAY  ) ELSE MAY   END ) MAY  
+	  ,SUM(CASE WHEN idxnvl1=2 then abs(JUN  )*-1 WHEN idxnvl1=3 then abs(JUN  ) ELSE JUN   END ) JUN  
+	  ,SUM(CASE WHEN idxnvl1=2 then abs(JUL  )*-1 WHEN idxnvl1=3 then abs(JUL  ) ELSE JUL   END ) JUL  
+	  ,SUM(CASE WHEN idxnvl1=2 then abs(AGO  )*-1 WHEN idxnvl1=3 then abs(AGO  ) ELSE AGO   END ) AGO  
+	  ,SUM(CASE WHEN idxnvl1=2 then abs(SEP  )*-1 WHEN idxnvl1=3 then abs(SEP  ) ELSE SEP   END ) SEP  
+	  ,SUM(CASE WHEN idxnvl1=2 then abs(OCT  )*-1 WHEN idxnvl1=3 then abs(OCT  ) ELSE OCT   END ) OCT  
+	  ,SUM(CASE WHEN idxnvl1=2 then abs(NOV  )*-1 WHEN idxnvl1=3 then abs(NOV  ) ELSE NOV   END ) NOV  
+	  ,SUM(CASE WHEN idxnvl1=2 then abs(DIC  )*-1 WHEN idxnvl1=3 then abs(DIC  ) ELSE DIC   END ) DIC
 --posible mejora
 		CTE_FECHAS  AS (SELECT DISTINCT TRXDATE FECHA,TASA FROM CTE_FILTRA),
 		CTE_TASAS   AS (SELECT FECHA,TASA IDTASA,dbo.f_buscatasadia(FECHA,TASA) NTASA FROM CTE_FECHAS),
