@@ -355,7 +355,7 @@ SELECT  '3' IDXNVL1,'PATRIMONIO' NIVELGRUPO,0 VISNVL1
 		,'Diferencia en Conversión' ACTDESCR
 		,@MONEDA CURNCYID
 		,'' TXTMONEDA
-	  --PQC Roberto 16-06-2022		
+	  --PQC Roberto 16-06-2022, 2 y 3 cambia el signo		
 	  ,SUM(CASE WHEN idxnvl1 in (2,3) then (SALDO)*-1 ELSE SALDO END ) SALDO
 	  ,SUM(CASE WHEN idxnvl1 in (2,3) then (ENE  )*-1 ELSE ENE   END ) ENE  
 	  ,SUM(CASE WHEN idxnvl1 in (2,3) then (FEB  )*-1 ELSE FEB   END ) FEB  
